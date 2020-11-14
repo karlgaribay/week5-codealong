@@ -21,12 +21,11 @@ library(car)
 Asking: Do we have enough evidence to make us think that these samples are drawn from populations with different means, or am I sticking with the null hypothesis that these samples were drawn from populations with the same means?
 
 
-Mass comparison (body_mass_g): male & female chinstrap penguins
+### Mass comparison (body_mass_g): male & female chinstrap penguins
 
 1. Explore data by:
 - Making a subset that only contains chinstrap penguins
 - Making basic plots to explore normality and distribution
-
 - Get descriptive statistics
 
 
@@ -62,6 +61,44 @@ chinstraps %>%
 #I can see that means are a bit different for females & males, both have an equal sample size, similar sd's, median are similar to the mean which is reflective of the symmetric distribution. Looking at these differences is more important than a p-value.
  
 ```
+
+2. Get vectors of body_mass_g for female & male chinstap penguins separately. 
+
+```{r}
+chinstraps_f <- chinstraps %>% 
+  filter(sex == "female") %>% 
+  pull(body_mass_g)
+
+chinstraps_m <- chinstraps %>% 
+  filter(sex == "male") %>% 
+  pull
+```
+
+### T-test
+
+
+1. Is there  a sig diff in body mass b/w male & female chinstrap penguins? (2 sided) Do we have enough evidence to think the mean difference is far enough from 0 to think that the pop mean mass is diff for the groups that these were drawn from.
+
+
+```{r}
+chinstrap_ttest <- t.test(chinstraps_f, chinstraps_m)
+chinstrap_ttest #Call it to view below. The lowest line tells you the means of the two groups in the order you put them in. The null hyp is that the means are equal so the diff in means is equal to 0. The t value is a measure of how diff from 0 our means are on the t distribution when taking into account sample size and data dispersion. df are a measure of sample size. p-value is the prob that I could've gotten sample means that are at least as different as ours are by random chance if they were drawn from pops with the same mean. Since our p-value is super low, this is enough evidence to reject the null that these samples were drawn from pop with same mean body mass. Our conclusion is that there's a significant difference for mean body mass b/w male & female chinstrap penguins. It's important to add the actual difference, how much larger males are than females, and the effect size.
+
+cohen.d(chinstraps_f, chinstraps_m) #Gives us magnitude of 1.26, which is considered large effect size. So this is a clear difference that exists between female & male chinstrap penguins. The effect size is not so highly impacted by sample size. 
+
+#Look at key and use of broom fn
+
+```
+ 
+2. Are male chinstrap penguins sig larger in body mass than female chinstrap penguins? (1 sided test). What is the prob that I could've gotten a means diff that is at least this larger or greater by random chance? 
+
+
+```{r}
+male_ttest <- t.test(chinstraps_m, chinstraps_f, alternative = "greater") #the alternative greater or less is what fits in b/w the vectors
+male_ttest #this tells me: yes, reject the null that the means difference is not greater than 0 aka it's the same, and retain the alt hyp that the means diff is greater than 0. The way to write it: males mean chinstrap penguins body mass is sig greater than female mean chinstrap body mass, and then report the significance level.
+```
+
+
 
 
 
