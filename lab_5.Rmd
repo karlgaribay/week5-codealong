@@ -1,0 +1,67 @@
+---
+title: "Penguins size comparisons"
+author: "Karla Garibay Garcia"
+date: "11/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(palmerpenguins)
+library(effsize)
+library(broom)
+library(ggbeeswarm)
+library(car)
+```
+
+# Part 1. T-tests to compare means between two different groups. 
+
+
+Asking: Do we have enough evidence to make us think that these samples are drawn from populations with different means, or am I sticking with the null hypothesis that these samples were drawn from populations with the same means?
+
+
+Mass comparison (body_mass_g): male & female chinstrap penguins
+
+1. Explore data by:
+- Making a subset that only contains chinstrap penguins
+- Making basic plots to explore normality and distribution
+
+- Get descriptive statistics
+
+
+```{r}
+chinstraps <- penguins %>% 
+  filter(species == "Chinstrap")
+
+
+#Histograms - don't need a y variable bc it'll automatically count the # of observations in the different bins created for body mass.Use `facet_wrap` to split the male & female groups into separate plots. 
+ggplot(data = chinstraps, 
+       aes(x = body_mass_g)) +
+  geom_histogram(bins = 10) +
+  facet_wrap(~sex)
+#Histograms look somewhat normally distributed and bell shape is somewhat symmetric, so it seems that mean would be a reasonable metric of central tendency. The central tendency of the male weight is a bit higher, closer to 4,000 g , than the female central tendency, closer to 3,500 g. 
+
+
+#QQplot - compares our sample to data if it were perfectly drawn from a normal distribution. The closer to linear, the closer our sample is to being normally distributed or being drawn from a normal distribution.
+ggplot(data = chinstraps, 
+       aes(sample = body_mass_g)) +
+  geom_qq() +
+  facet_wrap(~sex)
+#QQplots look very close to normally distributed.
+
+
+#Descriptive Statistics using group_by() and summarize, which recognize groups w/i a variable and then puts the fn that we call in summarize, condenses the calculations for each group into a single value and reports it as a nice summary table.
+chinstraps %>% 
+  group_by(sex) %>% 
+  summarize(
+    mean_mass = mean(body_mass_g), 
+    median_mass = median(body_mass_g),
+    sd_mass = sd(body_mass_g), 
+    sample_size = n())
+#I can see that means are a bit different for females & males, both have an equal sample size, similar sd's, median are similar to the mean which is reflective of the symmetric distribution. Looking at these differences is more important than a p-value.
+ 
+```
+
+
+
