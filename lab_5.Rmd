@@ -15,6 +15,8 @@ library(ggbeeswarm)
 library(car)
 ```
 
+
+
 # Part 1. T-tests to compare means between two different groups. 
 
 
@@ -99,6 +101,97 @@ male_ttest #this tells me: yes, reject the null that the means difference is not
 ```
 
 
+# Part 2. One-way ANOVA (way to compare means across >2 groups)
 
 
+### Looking at penguins sizes, specifically mean flipper length of female penguins b/w the three species 
+
+
+1. Explore data by:
+- Make a table of counts by species and sex
+- Create subset of only female penguins
+- Look at distributions of each w/ histrogram and qqplot
+- Summary statistics
+
+
+```{r}
+penguin_counts <- penguins %>% 
+  count(species, sex) #list vairables that I want to create groups by. could also do this w/group_by, summarize and n.
+penguin_counts #n is large enough to assume CLT applies and data is normally distributed, but still need to check
+
+
+penguin_f <- penguins %>% 
+  filter(sex == "female")
+
+
+ggplot(data = penguin_f, aes(x = flipper_length_mm)) +
+  geom_histogram(aes(fill = species))+ #Look pretty bell-shaped, pretty close to normally distributed. 
+  facet_wrap(~species) #a good default setting is that all of the axes have to match for each graph, which makes it easier to compare across groups. If ever exploring the distributions w/i groups, add `,scale = "free"` 
+
+
+ggplot(data = penguin_f, aes(sample = flipper_length_mm)) +
+  geom_qq(aes(color = species))+ #Very close to linear, so this shows my samples were drawn from populations with normal distributions. 
+  facet_wrap(~species) 
+
+penguin_f_summary <-  penguin_f %>% 
+  group_by(species) %>% 
+  summarize(mean_flipper_length = mean(flipper_length_mm), 
+            sd_flipper_length = sd(flipper_length_mm),
+            sample_size = n(), 
+            se_flipper_length = sd(flipper_length_mm)/sqrt(n()),
+            variance_flipper_length = var(flipper_length_mm)) #If my largest variance for a group is <4x greater than the smallest variance, then they're close enough to run an ANOVA
+penguin_f_summary
+
+leveneTest(flipper_length_mm ~ species, data = penguin_f) #Hyp test, where null is that our groups have equal variances. Looking at variance in flipper length as a fn of species. Looking at the Pr(>F) value is the same as the p-value, which here is >.05 sig so we retain the null hyp that variance is equal. 
+```
+
+2. Beeswarm plot (way to show summary statistics) w/mean +- 1sd
+
+
+```{r}
+ggplot() +
+  geom_beeswarm(data = penguin_f, 
+                aes(x = species, 
+                    y = flipper_length_mm), #shows me distributions of my observations and arranges them where the greater densities of observations
+                color = "cyan", 
+                alpha = 0.5) +#if customizations refer to a variable it should be in aes, if not it should be outside of aes.
+  geom_point(data = penguin_f_summary, #adds points on top of beeswarm plot
+             aes(x = species, 
+                 y = mean_flipper_length)) +
+  geom_errorbar(data = penguin_f_summary, #adds whiskers
+                aes(x = species, 
+                    ymax = mean_flipper_length + sd_flipper_length, 
+                    ymin = mean_flipper_length - sd_flipper_length), 
+                width = 0.1) + #adjusts width of error bar 
+  theme_minimal()
+  
+```
+
+### One-way ANOVA 
+
+Answers: Do we have enough evidence to reject the null that all means are equal? 
+
+```{r}
+penguin_aov <- aov(flipper_length_mm ~ species, 
+                   data = penguin_f)
+summary(penguin_aov) # F statistics is the ratio B/w group variance/ w/i group variance. For this example, the F statistic is high, which means the Bss is higher than the Wss and that's reflected in the p-value, which is a really low probability that we could've gotten sample means by random chance that are at least this different if all of our samples were drawn from populations with the same mean.So we have enough evidence to reject the null hyp that the means for all of these species are the same. B/c of this result we want to do a post-hoc test
+
+TukeyHSD(penguin_aov)#does pairwise comparisons and adjusts so we don't have the 5% error each time. We can see that all p values are below 0.05 so we conclude there's a sig diff in female flipper length b/w all of the groups aka b/w each species.
+```
+
+## Type III ANOVA with car package 
+
+
+If we have very unbalanced design, with different n and distributions w/i groups, we want to do an orthogonal or type 3 anova by: 
+- Creating a linear model that explores flipper length as a fn of species
+
+
+```{r}
+penguin_lm <- lm(flipper_length_mm ~ species, 
+                 data = penguin_f)
+penguin_aov_t3 <- Anova(penguin_lm, type = "III") #tell it what type of anova you want to performk
+penguin_aov_t3 #most of the time, it's similar to the one-way and type II anova, unless data is VERY unbalanced
+```
+
+Conclusion: there is enough evidence to reject the null that our samples are drawn from pops with the same mean. aka there's a sig diff in mean flipper length b/w female gentoo, chinstrap, and adelie penguins.
 
